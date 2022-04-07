@@ -55,3 +55,63 @@ class RetailManagement:
         return valid_product
 
 
+    def find_store_by_product(self, sku, target_product, store, sales, inventory):
+        """
+        This function is to find the quantity of the targeted product in each store.
+        :param sku: a string that represents the element of sku of the product in the excel file.
+        :param target_product: a string that represents the sku of the product to be researched.
+        :param store: a string that represents the element of stores in the excel file.
+        :param sales: a string that represents the element of sales in the excel file.
+        :param inventory: a string that represents the element of inventory in the excel file.
+        :return: a dictionary consisted of keys of the store name, and value of a float of the quantity of the
+        targeted product.
+        """
+        stores = collections.defaultdict(int)
+        for i in range(len(self.retail.collect[sku])):
+            if self.retail.collect[sku][i] == target_product:
+                if self.retail.collect[store][i] != "":
+                    self.retail.collect[sales][i] = 0 if self.retail.collect[sales][i] == "" else \
+                    self.retail.collect[sales][i]
+                    stores[self.retail.collect[store][i]] += self.retail.collect[inventory][i] - self.retail.collect[sales][
+                        i]
+
+        return stores
+
+
+    def transfer_product(self, store, revenue, sku, target_product, sales, inventory):
+        """
+        This function is to transfer products with low sales to stores with high revenue.
+        :param store: a string that represents the element of stores in the excel file.
+        :param revenue: a string that represents the element of retail revenue in the excel file.
+        :param sku: a string that represents the element of sku of the product in the excel file.
+        :param target_product: a string that represents the sku of the product to be researched.
+        :param sales: a string that represents the element of sales in the excel file.
+        :param inventory: a string that represents the element of inventory in the excel file.
+        :return: a dictionary consists of keys of the sku of the product, and value of a list of strings that record
+        the expected transportation of the targeted product.
+        """
+        revenue_store = self.sort_by_quantity(store, revenue, True)
+        store_product = self.find_store_by_product(sku, target_product, store, sales, inventory)
+
+        transfer_record = collections.defaultdict(list)
+        for shop in store_product:
+            amount = store_product[shop]
+            if amount >= 3:
+                for mall in revenue_store:
+                    if amount // 3 > 0:
+                        content = "From %s to %s transfer %i" % (shop, mall[1], 3)
+                        transfer_record[target_product].append(content)
+                        amount -= 3
+                    elif 0 < amount < 3:
+                        if transfer_record[target_product]:
+                            to_ship = int(transfer_record[target_product][0][-1])
+                            transfer_record[target_product][0] = "From %s to %s transfer %i" \
+                                                                 % (shop, revenue_store[0][1], int(amount + to_ship))
+                        else:
+                            content = "From %s to %s transfer %i" % (shop, revenue_store[0][1], int(amount))
+                            transfer_record[target_product].append(content)
+                        break
+                    else:
+                        break
+
+        return transfer_record
