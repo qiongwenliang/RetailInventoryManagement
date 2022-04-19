@@ -99,19 +99,54 @@ class RetailManagement:
             if amount >= 3:
                 for mall in revenue_store:
                     if amount // 3 > 0:
-                        content = "From %s to %s transfer %i" % (shop, mall[1], 3)
+                        content = [shop, mall[1], 3]
                         transfer_record[target_product].append(content)
                         amount -= 3
                     elif 0 < amount < 3:
                         if transfer_record[target_product]:
                             to_ship = int(transfer_record[target_product][0][-1])
-                            transfer_record[target_product][0] = "From %s to %s transfer %i" \
-                                                                 % (shop, revenue_store[0][1], int(amount + to_ship))
+                            transfer_record[target_product][0] = [shop, revenue_store[0][1], int(amount + to_ship)]
                         else:
-                            content = "From %s to %s transfer %i" % (shop, revenue_store[0][1], int(amount))
+                            content = [shop, revenue_store[0][1], int(amount)]
                             transfer_record[target_product].append(content)
                         break
                     else:
                         break
 
         return transfer_record
+
+
+    def estimate_sales(self, store, revenue, sku, target_product, sales, inventory):
+        """
+        This function is to estimate sales of a targeted product in a specific store.
+        :param store: a string that represents the element of stores in the excel file.
+        :param revenue: a string that represents the element of retail revenue in the excel file.
+        :param sku: a string that represents the element of sku of the product in the excel file.
+        :param target_product: a string that represents the sku of the product to be researched.
+        :param sales: a string that represents the element of sales in the excel file.
+        :param inventory: a string that represents the element of inventory in the excel file.
+        :return:
+        """
+        transfered_product = self.transfer_product(store, revenue, sku, target_product, sales, inventory)
+        store_to_check = []
+        for mall in transfered_product[target_product]:
+            store_to_check.append(mall[1])
+
+        target_product_sales = {target_product: {}}
+        for shop in store_to_check:
+            for pointer in range(len(self.retail.collect[store])):
+                if shop == self.retail.collect[store][pointer] and target_product == self.retail.collect[sku][pointer]:
+                    if shop not in target_product_sales[target_product]:
+                        if not self.retail.collect[sales][pointer]:
+                            target_product_sales[target_product][shop] = 0
+                        else:
+                            target_product_sales[target_product][shop] = self.retail.collect[sales][pointer]
+                    else:
+                        if self.retail.collect[sales][pointer]:
+                            prev = target_product_sales[target_product][shop]
+                            target_product_sales[target_product][shop] = prev + self.retail.collect[sales][pointer]
+
+        return target_product_sales
+
+
+
